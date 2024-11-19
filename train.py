@@ -3,7 +3,7 @@ import os
 from torchvision.utils import save_image
 
 # Create a directory for saving samples
-os.makedirs(f'samples/{args.dataset}', exist_ok=True)
+os.makedirs(f'samples/data', exist_ok=True)
 
 for epoch in range(args.epochs):
     ge_loss = 0.
