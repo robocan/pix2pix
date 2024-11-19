@@ -1,16 +1,59 @@
-import random
-import os
+import torch
+from torch import nn
+from torch.utils.data import DataLoader
 import time
-from torchvision.utils import save_image
+import argparse
+from progress.bar import IncrementalBar
 
+from dataset import Cityscapes, Facades, Maps
+from dataset import transforms as T
+from gan.generator import UnetGenerator
+from gan.discriminator import ConditionalDiscriminator
+from gan.criterion import GeneratorLoss, DiscriminatorLoss
+from gan.utils import Logger, initialize_weights
+
+parser = argparse.ArgumentParser(prog = 'top', description='Train Pix2Pix')
+parser.add_argument("--epochs", type=int, default=200, help="Number of epochs")
+parser.add_argument("--dataset", type=str, default="facades", help="Name of the dataset: ['facades', 'maps', 'cityscapes']")
+parser.add_argument("--batch_size", type=int, default=1, help="Size of the batches")
+parser.add_argument("--lr", type=float, default=0.0002, help="Adams learning rate")
+args = parser.parse_args()
+
+device = ('cuda:0' if torch.cuda.is_available() else 'cpu')
+
+transforms = T.Compose([T.Resize((256,256)),
+                        T.ToTensor(),
+                        T.Normalize(mean=[0.5, 0.5, 0.5],
+                                     std=[0.5, 0.5, 0.5])])
+# models
+print('Defining models!')
+generator = UnetGenerator().to(device)
+discriminator = ConditionalDiscriminator().to(device)
+# optimizers
+g_optimizer = torch.optim.Adam(generator.parameters(), lr=args.lr, betas=(0.5, 0.999))
+d_optimizer = torch.optim.Adam(discriminator.parameters(), lr=args.lr, betas=(0.5, 0.999))
+# loss functions
+g_criterion = GeneratorLoss(alpha=100)
+d_criterion = DiscriminatorLoss()
+# dataset
+print(f'Downloading "{args.dataset.upper()}" dataset!')
+if args.dataset=='cityscapes':
+    dataset = Cityscapes(root='.', transform=transforms, download=True, mode='train')
+elif args.dataset=='maps':
+    dataset = Maps(root='.', transform=transforms, download=True, mode='train')
+else:
+    dataset = Facades(root='.', transform=transforms, download=True, mode='train')
+dataloader = DataLoader(dataset, batch_size=args.batch_size, shuffle=True)
+print('Start of training process!')
+logger = Logger(filename=args.dataset)
 # Create a directory for saving samples
-os.makedirs(f'samples/data', exist_ok=True)
-epochs = 10
-for epoch in range(epochs):
+os.makedirs(f'samples/{args.dataset}', exist_ok=True)
+
+for epoch in range(args.epochs):
     ge_loss = 0.
     de_loss = 0.
     start = time.time()
-    bar = IncrementalBar(f'[Epoch {epoch+1}/{epochs}]', max=len(dataloader))
+    bar = IncrementalBar(f'[Epoch {epoch+1}/{args.epochs}]', max=len(dataloader))
     for x, real in dataloader:
         x = x.to(device)
         real = real.to(device)
@@ -66,9 +109,9 @@ for epoch in range(epochs):
         fake_sample = generator(x_sample)
         
         # Save real, input, and generated images for comparison
-        save_image((x_sample + 1) / 2, f'samples/data/input_{epoch+1}.png')  # Input
-        save_image((real_sample + 1) / 2, f'samples/data/real_{epoch+1}.png')  # Ground Truth
-        save_image((fake_sample + 1) / 2, f'samples/data/fake_{epoch+1}.png')  # Generated
+        save_image((x_sample + 1) / 2, f'samples/{args.dataset}/input_{epoch+1}.png')  # Input
+        save_image((real_sample + 1) / 2, f'samples/{args.dataset}/real_{epoch+1}.png')  # Ground Truth
+        save_image((fake_sample + 1) / 2, f'samples/{args.dataset}/fake_{epoch+1}.png')  # Generated
     
     generator.train()  # Set generator back to training mode
     
