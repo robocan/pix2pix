@@ -4,12 +4,12 @@ from torchvision.utils import save_image
 
 # Create a directory for saving samples
 os.makedirs(f'samples/data', exist_ok=True)
-
+epochs = 10
 for epoch in range(epochs):
     ge_loss = 0.
     de_loss = 0.
     start = time.time()
-    bar = IncrementalBar(f'[Epoch {epoch+1}/{args.epochs}]', max=len(dataloader))
+    bar = IncrementalBar(f'[Epoch {epoch+1}/{epochs}]', max=len(dataloader))
     for x, real in dataloader:
         x = x.to(device)
         real = real.to(device)
@@ -65,9 +65,9 @@ for epoch in range(epochs):
         fake_sample = generator(x_sample)
         
         # Save real, input, and generated images for comparison
-        save_image((x_sample + 1) / 2, f'samples/{args.dataset}/input_{epoch+1}.png')  # Input
-        save_image((real_sample + 1) / 2, f'samples/{args.dataset}/real_{epoch+1}.png')  # Ground Truth
-        save_image((fake_sample + 1) / 2, f'samples/{args.dataset}/fake_{epoch+1}.png')  # Generated
+        save_image((x_sample + 1) / 2, f'samples/data/input_{epoch+1}.png')  # Input
+        save_image((real_sample + 1) / 2, f'samples/data/real_{epoch+1}.png')  # Ground Truth
+        save_image((fake_sample + 1) / 2, f'samples/data/fake_{epoch+1}.png')  # Generated
     
     generator.train()  # Set generator back to training mode
     
