@@ -5,7 +5,7 @@ from torchvision.utils import save_image
 # Create a directory for saving samples
 os.makedirs(f'samples/data', exist_ok=True)
 
-for epoch in range(args.epochs):
+for epoch in range(epochs):
     ge_loss = 0.
     de_loss = 0.
     start = time.time()
