@@ -1,5 +1,6 @@
 import random
 import os
+import time
 from torchvision.utils import save_image
 
 # Create a directory for saving samples
